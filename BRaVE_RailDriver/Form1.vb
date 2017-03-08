@@ -28,7 +28,6 @@ Public Class Form1
     Private sendThread As Thread
 
     Private Sub ReceiveTask()
-        running = True
 
         tbOutput("Waiting", TextBox2)
 
@@ -61,11 +60,11 @@ Public Class Form1
     Private Sub SendTask()
         While (running)
             Try
-                SyncLock lock
-                    Dim sendBytes As Byte()
+                '   SyncLock lock
+                Dim sendBytes As Byte()
                     sendBytes = getData()
                     sendClient.Send(sendBytes, sendBytes.Length)
-                End SyncLock
+                '  End SyncLock
 
                 Thread.Sleep(10)
             Catch ex As Exception
@@ -78,6 +77,7 @@ Public Class Form1
     Public Sub New()
 
         lock = New Object
+        running = True
 
         ' This call is required by the designer.
         InitializeComponent()
@@ -182,8 +182,11 @@ Public Class Form1
 
         Dim throttle As Integer
         throttle = data(2)
-        throttle /= (256 / 10)
+        ' Throttle calibration from 227-38
+        throttle -= 38
+        throttle /= ((227 - 38) / 10)
         throttle = 10 - throttle
+        tbAppend("Throttle = " + throttle.ToString, TextBox1)
 
         Dim mlj As Integer
         mlj = data(4)
