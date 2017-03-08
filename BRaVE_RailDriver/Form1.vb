@@ -110,7 +110,7 @@ Public Class Form1
     Dim mlj As Byte
     Dim lj As Byte
 
-    Private Sub setData(throttle As Byte, mlj As Byte, lj As Byte, mrs As Integer, rcc As Boolean, lb4 As Boolean, key As Integer)
+    Private Sub setData(throttle As Byte, mlj As Byte, lj As Byte, mrs As Integer, rcc As Boolean, lb3 As Boolean, lb4 As Boolean, key As Integer)
         tbAppend("Thr=" + throttle.ToString + " MLJ=" + mlj.ToString + " LJ=" + lj.ToString + " MRS=" + mrs.ToString + " RCC=" + rcc.ToString + " LB4=" + lb4.ToString + " Key=" + key.ToString, TextBox1)
 
         SyncLock lock
@@ -126,6 +126,9 @@ Public Class Form1
             End If
             If (rcc) Then
                 di4 = di4 Or 64
+            End If
+            If (lb3) Then
+                di3 = di3 Or 64
             End If
             If (lb4) Then
                 di3 = di3 Or 128
@@ -208,13 +211,15 @@ Public Class Form1
         rcc = data(3) < 70
         Dim lb4 As Boolean
         lb4 = data(6) > 150
+        Dim lb3 As Boolean
+        lb3 = data(6) < 150 And data(6) > 110
         Dim key As Integer
         If (data(7) > 150) Then
             key = 1
         Else
             key = -1
         End If
-        setData(throttle, mlj, lj, mrs, rcc, lb4, key)
+        setData(throttle, mlj, lj, mrs, rcc, lb3, lb4, key)
     End Sub
 
     Public Sub HandlePIEHidError(ByVal sourceDevice As PIEHid32Net.PIEDevice, ByVal perror As Integer) Implements PIEHid32Net.PIEErrorHandler.HandlePIEHidError
