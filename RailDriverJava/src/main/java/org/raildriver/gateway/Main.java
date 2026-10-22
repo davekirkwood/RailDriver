@@ -6,6 +6,21 @@ public final class Main {
     private Main() { }
     public static void main(String[] args) { System.exit(run(args)); }
 
+    static void pump(UdpGateway udp, RailDriverDevice device, AtomicInteger pendingNumber) throws Exception {
+        try {
+            while (udp.isRunning()) {
+                byte[] report = device.read();
+                if (report != null) udp.publish(InputMapper.map(report));
+                int number = pendingNumber.getAndSet(-1);
+                if (number >= 0 && udp.isRunning()) device.showNumber(number);
+            }
+        } catch (Exception | LinkageError failure) {
+            // Stop UDP before potentially slow native resource cleanup.
+            udp.close();
+            throw failure;
+        }
+    }
+
     static int run(String[] args) {
         if (args.length == 1 && (args[0].equals("--help") || args[0].equals("-h"))) {
             System.out.println("RailDriver Java gateway (Java 17+)\nUsage: java -jar raildriver-gateway.jar [--help]\n"
@@ -16,22 +31,16 @@ public final class Main {
         if (args.length != 0) { System.err.println("Unknown arguments; use --help"); return 2; }
         AtomicInteger pendingNumber = new AtomicInteger(-1);
         try (UdpGateway udp = new UdpGateway(pendingNumber::set)) {
-            Thread hook = new Thread(udp::close, "gateway-shutdown");
+            Thread owner = Thread.currentThread();
+            Thread hook = new Thread(() -> {
+                udp.close();
+                try { owner.join(2000); }
+                catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+            }, "gateway-shutdown");
             Runtime.getRuntime().addShutdownHook(hook);
             try (RailDriverDevice device = new RailDriverDevice()) {
                 device.showLogo();
-                while (udp.isRunning()) {
-                    try {
-                        byte[] report = device.read();
-                        if (report != null) udp.publish(InputMapper.map(report));
-                    } catch (Exception | LinkageError failure) {
-                        // Stop UDP before potentially slow native resource cleanup.
-                        udp.close();
-                        throw failure;
-                    }
-                    int number = pendingNumber.getAndSet(-1);
-                    if (number >= 0 && udp.isRunning()) device.showNumber(number);
-                }
+                pump(udp, device, pendingNumber);
                 if (udp.failure() != null) throw udp.failure();
             } finally {
                 udp.close();

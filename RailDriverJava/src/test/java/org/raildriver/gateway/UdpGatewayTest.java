@@ -60,5 +60,18 @@ class UdpGatewayTest {
             assertTimeoutPreemptively(Duration.ofSeconds(2), first::awaitStopped);
         }
     }
+    @Test void usbFailureStopsTransportBeforeCleanup() throws Exception {
+        RailDriverDeviceTest.FakeIo io=new RailDriverDeviceTest.FakeIo();
+        io.result=-1;
+        try(UdpGateway gateway=new UdpGateway(freePort(),freePort(),freePort(),n -> {});
+            RailDriverDevice device=new RailDriverDevice(io)) {
+            gateway.publish(InputMapper.map(InputMapperTest.report(0,38,0,0,0,0)));
+            assertThrows(java.io.IOException.class, () -> Main.pump(gateway,device,new AtomicInteger(-1)));
+            assertFalse(gateway.isRunning());
+            assertFalse(io.closed); // transport stopped before native close
+            assertTimeoutPreemptively(Duration.ofSeconds(2), gateway::awaitStopped);
+        }
+        assertTrue(io.closed);
+    }
     @Test void helpNeedsNoHardwareOrPorts() { assertEquals(0,Main.run(new String[]{"--help"})); }
 }
