@@ -1,0 +1,22 @@
+{
+  "kind": "real physical HID session API integration; no native GUI input automation",
+  "device": "PI Engineering RailDriver Modern Desktop 05F3:00D2 usagePage12",
+  "runs": 2,
+  "run1": {
+    "state": "RUNNING",
+    "raw_hex": "37 23 D4 22 89 8C 8F 00 00 00 00 00 00 35",
+    "packet_hex": "00 02 00 09 00 0A 00 00 00 00 00 00 00 00 00 00 08 00 40 08",
+    "successful_sends_observed": 45,
+    "exported_reports": 6,
+    "led107": "driver write accepted; no new visual confirmation"
+  },
+  "run2": {
+    "state": "RUNNING",
+    "successful_sends_observed": 1
+  },
+  "both_runs_stop": "STOPPED \u2014 all resources released; command port59982 rebind succeeded",
+  "exit": 0,
+  "tested_jar_sha256": "562cc4162c43183ceedfbd3f5e4f7dca7bc8d596276aafd1f8be88b906d69599",
+  "native_gui_acceptance": "not performed: CUA app access rejected, user chose software/render checks",
+  "source": "facts transcribed from captured exec output; replayable probe source and actual CSV retained"
+}

@@ -17,6 +17,7 @@ public final class UdpGateway implements AutoCloseable {
     private boolean unavailablePeerReported;
     private volatile boolean running = true;
     private volatile IOException failure;
+    private volatile long successfulSends;
 
     public UdpGateway(IntConsumer display) throws SocketException {
         this(59982, 59981, 59983, display);
@@ -25,12 +26,17 @@ public final class UdpGateway implements AutoCloseable {
     // Alternative loopback ports for isolated synthetic tests only.
     UdpGateway(int receivePort, int commandPeerPort, int destinationPort, IntConsumer display)
             throws SocketException {
+        this(receivePort, commandPeerPort, destinationPort, 10, display);
+    }
+
+    UdpGateway(int receivePort, int commandPeerPort, int destinationPort, int delayMillis, IntConsumer display)
+            throws SocketException {
         this.display = display;
         InetAddress loopback = InetAddress.getLoopbackAddress();
         try { loopback = InetAddress.getByName("127.0.0.1"); }
         catch (UnknownHostException impossible) { throw new AssertionError(impossible); }
         receiver = new DatagramSocket(null);
-        DatagramSocket output = null;
+        DatagramSocket output;
         try {
             receiver.setReuseAddress(false);
             receiver.bind(new InetSocketAddress(loopback, receivePort));
@@ -39,13 +45,12 @@ public final class UdpGateway implements AutoCloseable {
             output.connect(loopback, destinationPort);
         } catch (SocketException e) {
             receiver.close();
-            if (output != null) output.close();
             throw new SocketException("Cannot bind/open legacy UDP ports (only one gateway may run): " + e);
         }
         sender = output;
         transmitter = Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "legacy-udp-send"));
         commands = new Thread(this::receiveCommands, "legacy-udp-commands");
-        transmitter.scheduleWithFixedDelay(this::send, 0, 10, TimeUnit.MILLISECONDS);
+        transmitter.scheduleWithFixedDelay(this::send, 0, delayMillis, TimeUnit.MILLISECONDS);
         commands.start();
     }
 
@@ -56,7 +61,7 @@ public final class UdpGateway implements AutoCloseable {
 
     private synchronized void send() {
         if (!running || frame == null) return;
-        try { sender.send(new DatagramPacket(frame, frame.length)); }
+        try { sender.send(new DatagramPacket(frame, frame.length)); successfulSends++; }
         catch (PortUnreachableException absentSimulator) {
             // Connected UDP can receive ICMP errors while the simulator is not listening.
             // Retain the legacy startup order and retry only at the normal scheduled cadence.
@@ -92,6 +97,7 @@ public final class UdpGateway implements AutoCloseable {
 
     private synchronized void fail(IOException e) { failure = e; close(); }
     public boolean isRunning() { return running; }
+    public long successfulSends() { return successfulSends; }
     public IOException failure() { return failure; }
 
     @Override public synchronized void close() {

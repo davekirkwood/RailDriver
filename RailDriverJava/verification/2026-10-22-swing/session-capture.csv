@@ -1,0 +1,14 @@
+# RailDriver evidence v1; raw=14 unprefixed HID bytes; packet=unchanged 20-byte legacy encoding
+# Samples are observed reports, not a record of every UDP send. Successful sends are counted separately.
+# capture_evicted=0; events_evicted=0; diagnostic_messages_dropped=0
+# event 2026-10-22T16:04:56.428843Z  Starting run 1; GatewayConfig[commandPort=59982, peerPort=59981, destinationPort=59983, sendDelayMillis=10, diagnostics=true]
+# event 2026-10-22T16:04:56.616959Z  HID input length=14 bytes=[55, 35, 212, 34, 137, 140, 143, 0, 0, 0, 0, 0, 0, 53]
+# event 2026-10-22T16:04:56.623753Z  LED 107 queued (latest request wins)
+# event 2026-10-22T16:04:56.723241Z  LED 107 driver write accepted; visual confirmation required
+timestamp_utc,monotonic_nanos,run,provenance,raw_hex,packet_hex
+2026-10-22T16:04:56.617113Z,332521293282375,1,"physical HID via hid4java; physical mapping partially verified",37 23 D4 22 89 8C 8F 00 00 00 00 00 00 35,00 02 00 09 00 0A 00 00 00 00 00 00 00 00 00 00 08 00 40 08
+2026-10-22T16:04:56.716170Z,332521392340000,1,"physical HID via hid4java; physical mapping partially verified",37 23 D4 22 89 8C 8F 00 00 00 00 00 00 35,00 02 00 09 00 0A 00 00 00 00 00 00 00 00 00 00 08 00 40 08
+2026-10-22T16:04:56.820234Z,332521496406625,1,"physical HID via hid4java; physical mapping partially verified",37 23 D4 22 89 8C 8F 00 00 00 00 00 00 35,00 02 00 09 00 0A 00 00 00 00 00 00 00 00 00 00 08 00 40 08
+2026-10-22T16:04:56.924182Z,332521600355708,1,"physical HID via hid4java; physical mapping partially verified",37 23 D4 22 89 8C 8F 00 00 00 00 00 00 35,00 02 00 09 00 0A 00 00 00 00 00 00 00 00 00 00 08 00 40 08
+2026-10-22T16:04:57.028167Z,332521704340416,1,"physical HID via hid4java; physical mapping partially verified",37 23 D4 22 89 8C 8F 00 00 00 00 00 00 35,00 02 00 09 00 0A 00 00 00 00 00 00 00 00 00 00 08 00 40 08
+2026-10-22T16:04:57.132838Z,332521809011125,1,"physical HID via hid4java; physical mapping partially verified",37 23 D4 22 89 8C 8F 00 00 00 00 00 00 35,00 02 00 09 00 0A 00 00 00 00 00 00 00 00 00 00 08 00 40 08

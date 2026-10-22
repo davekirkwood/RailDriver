@@ -10,6 +10,9 @@
 # Local BMad runtime
 /_bmad/
 
+# Local Impeccable artifacts
+/.impeccable/
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 

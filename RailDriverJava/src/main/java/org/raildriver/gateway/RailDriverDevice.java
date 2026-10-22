@@ -26,13 +26,15 @@ public final class RailDriverDevice implements AutoCloseable {
     private long nextPresenceCheck = System.nanoTime();
     private static final int[] DIGITS = {63, 6, 91, 79, 102, 109, 125, 7, 127, 103};
 
-    public RailDriverDevice() throws IOException {
+    public RailDriverDevice() throws IOException { this(System.out::println); }
+
+    RailDriverDevice(java.util.function.Consumer<String> output) throws IOException {
         HidServicesSpecification spec = new HidServicesSpecification();
         spec.setAutoDataRead(false);
         spec.setAutoStart(false);
         spec.setAutoShutdown(false);
         services = HidManager.getHidServices(spec);
-        diagnostics = new BoundedDiagnostics(System.out::println);
+        diagnostics = new BoundedDiagnostics(output);
         try {
             List<HidDevice> matches = services.getAttachedHidDevices().stream()
                     .filter(d -> d.getVendorId() == 0x05f3 && d.getProductId() == 0x00d2
@@ -109,13 +111,18 @@ public final class RailDriverDevice implements AutoCloseable {
 
     public void showLogo() { write(logo()); }
     public void showNumber(int number) { write(number(number)); }
-    private void write(byte[] payload) {
+    /** One native attempt. True means accepted by driver, never visual confirmation. */
+    boolean tryShowNumber(int number) { return write(number(number)); }
+    private boolean write(byte[] payload) {
         // hid4java prepends the report ID; do not copy PIE's prefixed buffer here.
         int written = io.write(payload, (byte) 134);
         if (written != payload.length + 1) {
             diagnostics.report("LED write failed/short (one attempt): " + written + "; " + io.error());
         }
+        return written == payload.length + 1;
     }
+    long diagnosticsDropped() { return diagnostics.dropped(); }
+    java.util.function.LongSupplier diagnosticCounter() { return diagnostics::dropped; }
     @Override public void close() {
         diagnostics.close();
         io.close();

@@ -1,0 +1,30 @@
+package org.raildriver.gateway;
+import java.net.*; import java.nio.file.*; import java.util.concurrent.*;
+public class SessionHardwareProbe {
+ public static void main(String[] args) throws Exception {
+  GatewaySession session=new GatewaySession();
+  try(DatagramSocket sink=new DatagramSocket(59983,InetAddress.getByName("127.0.0.1")); DatagramSocket peer=new DatagramSocket(59981,InetAddress.getByName("127.0.0.1"))) {
+   sink.setSoTimeout(3000);
+   for(int run=1;run<=2;run++) {
+    if(!session.start(GatewayConfig.defaults()))throw new AssertionError("start rejected");
+    try {
+     DatagramPacket packet=new DatagramPacket(new byte[100],100);sink.receive(packet);
+     if(packet.getLength()!=20)throw new AssertionError("wrong packet length");
+     GatewaySession.View view=session.view();if(view.latest()==null)throw new AssertionError("no snapshot");
+     if(view.latest().raw().length!=14)throw new AssertionError("wrong raw length");
+     System.out.println("RUN="+run+" STATE="+view.state()+" RAW="+GatewaySession.hex(view.latest().raw())+" PACKET="+GatewaySession.hex(view.latest().packet()));
+     if(run==1) {
+      if(!session.led(107))throw new AssertionError("LED queue rejected");
+      Thread.sleep(500);
+      for(String event:session.view().events())if(event.contains("LED 107"))System.out.println("EVENT="+event);
+      int n=session.export(Path.of(args[0])).get(3,TimeUnit.SECONDS);System.out.println("EXPORTED="+n);
+     }
+     System.out.println("SUCCESSFUL_SENDS="+session.view().sent());
+    } finally { session.stop(); if(!session.awaitIdle(3000))throw new AssertionError("stop timeout"); }
+    System.out.println("STOPPED="+session.view().state()+" MESSAGE="+session.view().message());
+    try(DatagramSocket rebound=new DatagramSocket(59982,InetAddress.getByName("127.0.0.1"))) {System.out.println("COMMAND_PORT_RELEASED=true");}
+    sink.setSoTimeout(30);try{while(true)sink.receive(new DatagramPacket(new byte[100],100));}catch(SocketTimeoutException expected){}sink.setSoTimeout(3000);
+   }
+  }
+ }
+}
