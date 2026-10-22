@@ -13,6 +13,12 @@
 # Local Impeccable artifacts
 /.impeccable/
 
+# Local planning and design-tool records
+/_bmad-output/
+/DESIGN.md
+/PRODUCT.md
+/RailDriverJava/DESKTOP_SURFACE.md
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
