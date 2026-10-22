@@ -14,6 +14,7 @@ public final class UdpGateway implements AutoCloseable {
     private final Thread commands;
     private final IntConsumer display;
     private byte[] frame;
+    private boolean unavailablePeerReported;
     private volatile boolean running = true;
     private volatile IOException failure;
 
@@ -56,7 +57,14 @@ public final class UdpGateway implements AutoCloseable {
     private synchronized void send() {
         if (!running || frame == null) return;
         try { sender.send(new DatagramPacket(frame, frame.length)); }
-        catch (IOException e) { fail(e); }
+        catch (PortUnreachableException absentSimulator) {
+            // Connected UDP can receive ICMP errors while the simulator is not listening.
+            // Retain the legacy startup order and retry only at the normal scheduled cadence.
+            if (!unavailablePeerReported) {
+                System.err.println("Simulator UDP port unavailable; continuing at nominal 10 ms cadence (message shown once)");
+                unavailablePeerReported = true;
+            }
+        } catch (IOException e) { fail(e); }
     }
 
     private void receiveCommands() {

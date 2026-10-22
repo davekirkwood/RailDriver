@@ -23,7 +23,7 @@ No control frames are sent before the first complete valid report. USB negative 
 | Output | ephemeral local UDP port → `127.0.0.1:59983`, nominal 10 ms between sends |
 | Commands | bound `127.0.0.1:59982`, connected to peer `127.0.0.1:59981` |
 
-Only datagrams from that command peer are accepted. Commands must contain exactly three bytes: `[81, any, any]` shuts down; `[83, b1, b2]` displays unsigned `b1*100+b2`. Unknown/short/long commands are ignored. Values above 999 keep the VB behaviour: an out-of-table hundreds digit is blank. Simulator connection-loss policy belongs to the simulator.
+Only datagrams from that command peer are accepted. Commands must contain exactly three bytes: `[81, any, any]` shuts down; `[83, b1, b2]` displays unsigned `b1*100+b2`. Unknown/short/long commands are ignored. Values above 999 keep the VB behaviour: an out-of-table hundreds digit is blank. If the simulator starts later or its UDP listener is temporarily absent, `PortUnreachableException` is diagnosed once and transmission attempts continue at the nominal 10 ms cadence; other transport I/O failures stop the gateway. Simulator connection-loss policy belongs to the simulator.
 
 All packet indices are zero-based. Bytes 1/3/5 hold LJ/MLJ/throttle. Byte 16 is direction (`4` or `8`) plus key bit `1`; byte 17 is zero; byte 18 holds LB3/LB4 bits `64`/`128`; byte 19 always includes `8` plus RCC bit `64`. All other bytes are zero. Physical button bytes are not forwarded, following VB. Brake arithmetic uses `10-roundEven(raw/25.6)`; throttle uses `10-roundEven((raw-38)/18.9)`. Values outside VB Byte range fail clearly instead of silently clamping. Historical calibration can produce values above 10; this is preserved when representable.
 

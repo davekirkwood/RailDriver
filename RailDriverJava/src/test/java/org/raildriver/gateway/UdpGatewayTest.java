@@ -52,6 +52,27 @@ class UdpGatewayTest {
             }
         }
     }
+    @Test void simulatorMayStartAfterGateway() throws Exception {
+        int destination=freePort();
+        byte[] frame=InputMapper.map(InputMapperTest.report(127,132,70,128,111,151));
+        try(UdpGateway gateway=new UdpGateway(freePort(),freePort(),destination,n -> {})) {
+            gateway.publish(frame);
+            // Real loopback sends to an unbound destination; several ICMP error cycles can occur.
+            Thread.sleep(200);
+            assertTrue(gateway.isRunning(), "Absent simulator must not stop the gateway");
+            assertNull(gateway.failure());
+            try(DatagramSocket sink=new DatagramSocket(destination, LOCAL)) {
+                sink.setSoTimeout(1000);
+                for(int i=0;i<3;i++) {
+                    DatagramPacket packet=new DatagramPacket(new byte[100],100);
+                    sink.receive(packet);
+                    assertEquals(20,packet.getLength());
+                    assertArrayEquals(frame,java.util.Arrays.copyOf(packet.getData(),packet.getLength()));
+                }
+                assertTrue(gateway.isRunning());
+            }
+        }
+    }
     @Test void exclusiveBindAndIdleShutdown() throws Exception {
         int port=freePort();
         try(UdpGateway first=new UdpGateway(port,freePort(),freePort(),n -> {})) {
