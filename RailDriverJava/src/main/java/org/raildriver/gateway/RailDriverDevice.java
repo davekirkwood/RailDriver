@@ -17,9 +17,13 @@ public final class RailDriverDevice implements AutoCloseable {
         void close();
     }
     private final Io io;
-    RailDriverDevice(Io io) { services = null; device = null; this.io = io; }
+    private final BoundedDiagnostics diagnostics;
+    RailDriverDevice(Io io) { this(io, new BoundedDiagnostics(System.out::println)); }
+    RailDriverDevice(Io io, BoundedDiagnostics diagnostics) {
+        services = null; device = null; this.io = io; this.diagnostics = diagnostics;
+    }
     private byte[] previous;
-    private long nextPresenceCheck;
+    private long nextPresenceCheck = System.nanoTime();
     private static final int[] DIGITS = {63, 6, 91, 79, 102, 109, 125, 7, 127, 103};
 
     public RailDriverDevice() throws IOException {
@@ -28,6 +32,7 @@ public final class RailDriverDevice implements AutoCloseable {
         spec.setAutoStart(false);
         spec.setAutoShutdown(false);
         services = HidManager.getHidServices(spec);
+        diagnostics = new BoundedDiagnostics(System.out::println);
         try {
             List<HidDevice> matches = services.getAttachedHidDevices().stream()
                     .filter(d -> d.getVendorId() == 0x05f3 && d.getProductId() == 0x00d2
@@ -49,6 +54,7 @@ public final class RailDriverDevice implements AutoCloseable {
                 public void close() { try { device.close(); } finally { services.shutdown(); } }
             };
         } catch (IOException | RuntimeException | LinkageError e) {
+            diagnostics.close();
             services.shutdown();
             throw e;
         }
@@ -58,20 +64,21 @@ public final class RailDriverDevice implements AutoCloseable {
         byte[] raw = new byte[64];
         int length = io.read(raw, 100);
         if (length < 0) throw new IOException("RailDriver USB read failed: " + io.error());
-        if (System.nanoTime() >= nextPresenceCheck) {
-            nextPresenceCheck = System.nanoTime() + 1_000_000_000L;
+        long now = System.nanoTime();
+        if (now - nextPresenceCheck >= 0) {
+            nextPresenceCheck = now + 1_000_000_000L;
             boolean attached = io.attached();
             if (!attached) throw new IOException("RailDriver detached; stopping control transmission");
         }
         if (length == 0) return null;
         byte[] observed = Arrays.copyOf(raw, length);
         if (!Arrays.equals(observed, previous)) {
-            System.out.println("HID input length=" + length + " bytes=" + Arrays.toString(unsigned(observed)));
+            diagnostics.report("HID input length=" + length + " bytes=" + Arrays.toString(unsigned(observed)));
             previous = observed;
         }
         if (length != 14) {
-            System.err.println("Ignoring HID input length=" + length + "; expected 14 unprefixed bytes; confirm report layout");
-            return null;
+            throw new IOException("Invalid HID input length=" + length
+                    + "; expected 14 unprefixed bytes; confirm controller report layout before restarting");
         }
         return normalize(observed);
     }
@@ -106,10 +113,11 @@ public final class RailDriverDevice implements AutoCloseable {
         // hid4java prepends the report ID; do not copy PIE's prefixed buffer here.
         int written = io.write(payload, (byte) 134);
         if (written != payload.length + 1) {
-            System.err.println("LED write failed/short (one attempt): " + written + "; " + io.error());
+            diagnostics.report("LED write failed/short (one attempt): " + written + "; " + io.error());
         }
     }
     @Override public void close() {
+        diagnostics.close();
         io.close();
     }
 }
