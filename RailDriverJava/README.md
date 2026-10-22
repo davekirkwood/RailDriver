@@ -1,6 +1,6 @@
 # Java RailDriver gateway
 
-Independent Java 17+ console alternative to the retained VB.NET gateway. It preserves the simulator's 20-byte binary UDP interface. Device, simulator and Windows release acceptance is **pending**; see [VERIFICATION.md](VERIFICATION.md). Stop VB.NET before starting Java. Run one gateway only.
+Independent Java 17+ console alternative to the retained VB.NET gateway. It preserves the simulator's 20-byte binary UDP interface. Initial macOS hardware checks (real HID/UDP, LED 107 and unplug exit) passed; complete device, simulator and Windows release acceptance is **pending**; see [VERIFICATION.md](VERIFICATION.md). Stop VB.NET before starting Java. Run one gateway only.
 
 ## Build and run
 
@@ -29,9 +29,9 @@ All packet indices are zero-based. Bytes 1/3/5 hold LJ/MLJ/throttle. Byte 16 is 
 
 ## HID compatibility assumptions
 
-The pure mapper accepts PIE's legacy prefixed layout. The device adapter currently accepts exactly 14 hidapi input bytes and prepends one zero byte: raw throttle index 1 becomes legacy index 2. This is an explicit assumption derived from the spec's JMRI reference, **not a confirmed controller capture**. Unexpected report lengths stop the gateway with an actionable error, without publishing a fabricated frame or continuing to transmit the previous state indefinitely. Confirm actual controller report numbering and offsets against VB before release; a different layout requires a reviewed normalization change.
+The pure mapper accepts PIE's legacy prefixed layout. The device adapter currently accepts exactly 14 hidapi input bytes and prepends one zero byte: raw throttle index 1 becomes legacy index 2. A real macOS session confirmed 14-byte reports and throttle movement at raw index 1, with consistent UDP output. Full control-by-control mapping and equality with a VB.NET capture remain unverified; see the recorded hardware evidence. Unexpected report lengths stop the gateway with an actionable error, without publishing a fabricated frame or continuing to transmit the previous state indefinitely. Confirm actual controller report numbering and offsets against VB before release; a different layout requires a reviewed normalization change.
 
-For output, hid4java `write(payload, length, reportId)` prepends the ID. We supply report ID `134` and seven payload bytes, beginning with the rightmost, middle and leftmost LED segments. The startup logo, leading blanking and unusual VB digit-9 segment value `103` are preserved. Do not pass the old PIE output buffer unchanged. Actual LED interpretation remains a hardware gate.
+For output, hid4java `write(payload, length, reportId)` prepends the ID. We supply report ID `134` and seven payload bytes, beginning with the rightmost, middle and leftmost LED segments. The startup logo, leading blanking and unusual VB digit-9 segment value `103` are preserved. Do not pass the old PIE output buffer unchanged. A real macOS session displayed 107 correctly, confirmed by the user. Other numbers/logo and Windows operation remain hardware gates.
 
 ## Windows app image
 

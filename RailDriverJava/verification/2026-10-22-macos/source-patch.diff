@@ -1,0 +1,21 @@
+diff --git a/RailDriverJava/src/main/java/org/raildriver/gateway/UdpGateway.java b/RailDriverJava/src/main/java/org/raildriver/gateway/UdpGateway.java
+index d428f11..d7e854d 100644
+--- a/RailDriverJava/src/main/java/org/raildriver/gateway/UdpGateway.java
++++ b/RailDriverJava/src/main/java/org/raildriver/gateway/UdpGateway.java
+@@ -30,7 +30,7 @@ public final class UdpGateway implements AutoCloseable {
+         try { loopback = InetAddress.getByName("127.0.0.1"); }
+         catch (UnknownHostException impossible) { throw new AssertionError(impossible); }
+         receiver = new DatagramSocket(null);
+-        DatagramSocket output = null;
++        DatagramSocket output;
+         try {
+             receiver.setReuseAddress(false);
+             receiver.bind(new InetSocketAddress(loopback, receivePort));
+@@ -39,7 +39,6 @@ public final class UdpGateway implements AutoCloseable {
+             output.connect(loopback, destinationPort);
+         } catch (SocketException e) {
+             receiver.close();
+-            if (output != null) output.close();
+             throw new SocketException("Cannot bind/open legacy UDP ports (only one gateway may run): " + e);
+         }
+         sender = output;
