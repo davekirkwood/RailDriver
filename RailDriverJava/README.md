@@ -1,55 +1,94 @@
 # Java RailDriver gateway
 
-Independent Java 17+ Swing/console alternative to the retained VB.NET gateway. It preserves the simulator's 20-byte binary UDP interface. Initial macOS hardware checks (real HID/UDP, LED 107 and unplug exit) passed; complete device, simulator and Windows release acceptance is **pending**; see [VERIFICATION.md](VERIFICATION.md). Stop VB.NET before starting Java. Run one gateway only.
+A Java 17+ alternative to the original VB.NET gateway, with console operation and a native Swing workbench. It reads a physical RailDriver controller and sends the existing simulator's 20-byte UDP frames. The original VB.NET project is retained unchanged.
 
-## Build and run
+![Swing device workbench showing lever channels, observed input bits, connection status and LED controls](docs/images/swing-device-preview.png)
 
-Install a full JDK 17+ and Maven, then from the repository root:
+*Preview: actual Swing components painted with synthetic input. This is a software render, not a live-controller screenshot. The illustration is original Java2D geometry; physical mappings marked unverified still require confirmation.*
+
+## Quick start
+
+You need a full **JDK 17+**, **Maven**, and a PI Engineering RailDriver controller. Run these commands from the repository root:
 
 ```sh
 mvn -f RailDriverJava/pom.xml clean verify
-java -jar RailDriverJava/target/raildriver-gateway.jar --help
-java -jar RailDriverJava/target/raildriver-gateway.jar
 java -jar RailDriverJava/target/raildriver-gateway.jar --gui
 ```
 
-On JDK 24+, use `java --enable-native-access=ALL-UNNAMED -jar RailDriverJava/target/raildriver-gateway.jar` to permit native loading without the JNA restricted-access warning. No PIE DLL installation, JMRI runtime or separate dependency classpath is required. The shaded JAR retains hid4java and JNA native resources. Native access/USB permissions still depend on the host. Connect a PI Engineering RailDriver (expected VID `05F3`, PID `00D2`, usage page `12`). Missing, ambiguous or inaccessible controllers stop with a nonzero exit and diagnostic. Startup diagnostics show identity. Ongoing changed-report diagnostics include observed length and unsigned bytes on a best-effort basis: a daemon worker and single-slot queue keep console output off the input pump, and messages may be dropped if the console is blocked. Ongoing LED-write diagnostics use the same bounded queue; shutdown does not wait for console writes.
+Connect the controller, select **Start**, then move a physical control to inspect its input. The window opens stopped and shows unavailable values until it receives a complete report. Run only one gateway at a time: stop VB.NET before starting Java, and stop Java before returning to VB.NET.
 
-No control frames are sent before the first complete valid report. USB negative read or detachment stops transmission; timeout alone means no new input. Detach enumeration is checked at most once per second, so a driver that reports only timeouts may leave up to about one second of previously valid output before detachment is detected. There is no reconnect loop. Ctrl+C or the legacy shutdown command requests shutdown and closes the UDP sockets. The JVM shutdown hook waits up to two seconds for the owner thread to finish cleanup; blocked native calls may prevent explicit HID close, and the OS reclaims remaining handles when the process terminates. A bind conflict on command port fails startup. LED output makes one write attempt and reports failure; hid4java has no write-timeout parameter, so the native driver determines the duration of that call.
+For console mode or command help:
 
-## Swing device workbench
+```sh
+java -jar RailDriverJava/target/raildriver-gateway.jar
+java -jar RailDriverJava/target/raildriver-gateway.jar --help
+```
 
-Launch with `--gui` on a desktop. The window opens **stopped**, with unavailable values until a real complete report arrives. Start opens the existing HID/UDP path on its owner thread; Stop or closing the window requests independent background UDP closure, so a blocked native read/LED call cannot keep transmitting old input; native cleanup also runs in the background. Restart is disabled until cleanup completes. Remote command 81 stops the session and leaves the window open. A missing controller or port conflict gives a recoverable error; reconnect/fix the port then Start. A headless machine gets an actionable GUI error and may use console mode.
+On JDK 24+, add the native-access option before `-jar` (append `--gui` for the workbench):
 
-- **Device:** original scalable Java2D controller drawing, four lever channels, two selector channels, separate bail-off value and two rows of fourteen observed bit labels. Click or hover for byte provenance; Packets provides keyboard-accessible text for every raw byte and bit. Bright outlines show recently changed inputs. The graphic is read-only and cannot simulate hardware. LED tests accept 0–999, queue one numeric request (newest wins) on the HID owner, and report driver acceptance or failure in Events. Driver acceptance requires separate visual confirmation on the actual display.
-- **Packets:** a coherent raw 14-byte / unchanged encoded 20-byte snapshot, UTC timestamp, raw binary bits and legacy flag semantics. Last-report age is shown neutrally: read timeouts may mean unchanged input. Successful UDP sends and measured average rate since Start appear above every tab; they are local send successes, not simulator receipt. Nominal delay is not a hard real-time guarantee.
-- **Settings:** edit the three distinct IPv4 loopback ports (1–65535), nominal send delay (1–1000 ms) and HID diagnostics while stopped. Load/Save explicitly use local Java properties; there is no automatic preference loading. An invalid file preserves current fields. Invalid fields are rejected before resource opening. Settings remain locked through starting/running/stopping and file work.
-- **Events / Export capture:** at most 200 events and 5,000 observed report/packet pairs are retained in memory, across runs in this window. Event/report eviction and diagnostic-queue drop counts are visible; closing the window discards memory. Export writes CSV off the EDT, with UTC and monotonic timestamps, run IDs, provenance, raw hex and encoded hex, plus bounded event comments and eviction counts. Reports are capture samples, not every repeated UDP transmission. Up to 200 completed per-run send/drop summaries plus the active run are retained, associated with run IDs in Events and exported CSV comments; summary evictions and their aggregate sends/drops are reported. Diagnostic drop totals persist across restarts. Empty captures and file errors are reported explicitly. Save/export write to a sibling temporary file before replacing the target, preserving prior contents if writing fails. Closing waits for pending file work without reopening completion dialogs. Exported device data may contain controller identity/path in diagnostic events.
+```sh
+java --enable-native-access=ALL-UNNAMED -jar RailDriverJava/target/raildriver-gateway.jar --gui
+```
 
-The illustration uses original Java2D geometry inspired by the supplied controller reference; no reference image or simulator-specific key assignments are bundled. Throttle raw 1 has prior physical confirmation. **Brake A/LJ raw 2, Brake B/MLJ raw 3, direction/selectors, bail-off naming and graphical button placement require physical mapping verification.** Raw channels 0–6 are normalized to legacy indices 1–7. The drawing labels observed raw bits; it does not assert where those bits occur physically. All remaining bits are available in Packets. General buttons remain omitted from the legacy wire encoding, and UI names do not redefine transmitted flag semantics. There is no calibration or physical-control simulation.
+The executable JAR includes hid4java, JNA and their native resources. A separate PIE DLL installation, JMRI runtime or dependency classpath is not required. USB access still depends on host permissions. The expected controller identity is VID `05F3`, PID `00D2`, usage page `12`.
 
-USB, network, properties and export I/O run off Swing's EDT. A 100 ms timer pulls the latest immutable state, avoiding a per-report UI queue. Native read requests use the existing 100 ms timeout; a native LED write/close can still take driver-defined time. During such cleanup the window remains responsive and restart stays disabled.
+## Using the workbench
 
-## Ports and packet contract
-
-| Purpose | Local / peer |
+| View | Purpose |
 | --- | --- |
-| Output | ephemeral local UDP port → `127.0.0.1:59983`, nominal 10 ms between sends |
-| Commands | bound `127.0.0.1:59982`, connected to peer `127.0.0.1:59981` |
+| **Device** | Read-only controller drawing with lever channels, selectors, bail-off and observed input bits. Changed inputs are highlighted; click or hover for byte details. Test the physical LED with a number from 0–999. |
+| **Packets** | Inspect a coherent 14-byte raw report and encoded 20-byte frame, timestamps, raw bits and legacy flag meanings. This also provides textual access to the graphical input values. |
+| **Settings** | Change the three distinct loopback ports, nominal send delay and HID diagnostics while stopped. Explicitly load/save local Java properties files. |
+| **Events** | Inspect lifecycle, device and LED-write diagnostics. Use **Export capture** to save captured reports, packets and run summaries as CSV. |
 
-Only datagrams from that command peer are accepted. Commands must contain exactly three bytes: `[81, any, any]` shuts down; `[83, b1, b2]` displays unsigned `b1*100+b2`. Unknown/short/long commands are ignored. Values above 999 keep the VB behaviour: an out-of-table hundreds digit is blank. If the simulator starts later or its UDP listener is temporarily absent, `PortUnreachableException` is diagnosed once and transmission attempts continue at the nominal 10 ms cadence; other transport I/O failures stop the gateway. Simulator connection-loss policy belongs to the simulator.
+**Start / Stop.** Missing devices and port conflicts produce recoverable errors. Reconnect or correct the settings, then select Start again. Stop closes UDP independently of native HID cleanup; restart stays disabled until cleanup finishes. Closing the window requests shutdown and waits for pending file operations. Remote command 81 stops the session and leaves the window open. There is no automatic reconnect loop.
 
-All packet indices are zero-based. Bytes 1/3/5 hold LJ/MLJ/throttle. Byte 16 is direction (`4` or `8`) plus key bit `1`; byte 17 is zero; byte 18 holds LB3/LB4 bits `64`/`128`; byte 19 always includes `8` plus RCC bit `64`. All other bytes are zero. Physical button bytes are not forwarded, following VB. Brake arithmetic uses `10-roundEven(raw/25.6)`; throttle uses `10-roundEven((raw-38)/18.9)`. Values outside VB Byte range fail clearly instead of silently clamping. Historical calibration can produce values above 10; this is preserved when representable.
+**Input interpretation.** Throttle raw index 1 has physical confirmation. Brake A/LJ raw 2, Brake B/MLJ raw 3, direction/selectors, bail-off naming and graphical key placement still require physical verification. Key labels identify observed byte/bit positions rather than simulator actions. The graphic cannot simulate input or calibrate the controller; general buttons remain omitted from the legacy packet format.
 
-## HID compatibility assumptions
+**LED tests and telemetry.** A successful LED write means the driver accepted it; confirm the displayed number on the actual device. Only the newest queued GUI LED request is retained. Send counts and average rate measure local UDP send successes, not simulator receipt. Report age is shown separately: a read timeout may mean the input has not changed.
 
-The pure mapper accepts PIE's legacy prefixed layout. The device adapter currently accepts exactly 14 hidapi input bytes and prepends one zero byte: raw throttle index 1 becomes legacy index 2. A real macOS session confirmed 14-byte reports and throttle movement at raw index 1, with consistent UDP output. Full control-by-control mapping and equality with a VB.NET capture remain unverified; see the recorded hardware evidence. Unexpected report lengths stop the gateway with an actionable error, without publishing a fabricated frame or continuing to transmit the previous state indefinitely. Confirm actual controller report numbering and offsets against VB before release; a different layout requires a reviewed normalization change.
+**Settings and capture.** Ports accept 1–65535 and nominal send delay accepts 1–1000 ms. Settings are locked during active sessions and file operations; invalid loaded settings preserve current fields. The window retains up to 5,000 report/packet pairs, 200 events and 200 completed run summaries plus the active run. Eviction and diagnostic-drop counts are reported. CSV includes UTC/monotonic timestamps, run IDs, raw/encoded hex, provenance and send/drop summaries. Captured reports are not a record of every repeated UDP send. Closing the window discards in-memory capture; export it first. Diagnostic events may include controller identity/path. Save/export use a temporary sibling file before replacing the destination.
 
-For output, hid4java `write(payload, length, reportId)` prepends the ID. We supply report ID `134` and seven payload bytes, beginning with the rightmost, middle and leftmost LED segments. The startup logo, leading blanking and unusual VB digit-9 segment value `103` are preserved. Do not pass the old PIE output buffer unchanged. A real macOS session displayed 107 correctly, confirmed by the user. Other numbers/logo and Windows operation remain hardware gates.
+USB, network and file operations run off Swing's event thread. A 100 ms UI timer reads the latest immutable snapshot. Native LED writes and cleanup may still take driver-defined time; the window remains responsive during cleanup.
 
-## Windows app image
+## Connection and protocol
 
-On **native Windows**, set `JAVA_HOME` to a full JDK 17+ of the target architecture and put Maven on PATH:
+Defaults preserve the existing simulator interface:
+
+| Purpose | Address / timing |
+| --- | --- |
+| Control output | Ephemeral local UDP port → `127.0.0.1:59983` |
+| Command listener | `127.0.0.1:59982`, accepting only peer `127.0.0.1:59981` |
+| Send delay | Nominal 10 ms between transmissions; not a hard real-time guarantee |
+
+Commands must be exactly three bytes:
+
+- `[81, any, any]`: request shutdown.
+- `[83, b1, b2]`: display unsigned `b1 * 100 + b2`. Values above 999 preserve VB behaviour: an out-of-table hundreds digit is blank.
+
+Wrong-source, malformed and unknown commands are ignored. If the simulator starts later or temporarily stops listening, `PortUnreachableException` is diagnosed once and transmission attempts continue. Other transport I/O failures stop the gateway.
+
+No control frames are sent before the first complete valid report. An unexpected report length, negative USB read or detected detachment stops transmission. Timeout alone is not a disconnect. Detach enumeration occurs at most once per second; a driver returning only timeouts can therefore leave approximately one second of previous output before detection. Console Ctrl+C and command shutdown close UDP; the JVM hook waits up to two seconds for owner-thread cleanup. Blocked native calls may prevent explicit HID close before process termination. Diagnostics use a bounded background queue and may be dropped rather than blocking the input pump.
+
+### Legacy packet layout
+
+All indices are zero-based. Unlisted bytes are zero.
+
+| Byte | Contents |
+| --- | --- |
+| 1 / 3 / 5 | LJ / MLJ / throttle |
+| 16 | Direction (`4` or `8`) plus key bit `1` |
+| 17 | Zero |
+| 18 | LB3 / LB4 bits `64` / `128` |
+| 19 | Always `8`, plus RCC bit `64` |
+
+Brake arithmetic is `10 - roundEven(raw / 25.6)`; throttle is `10 - roundEven((raw - 38) / 18.9)`. Values outside VB Byte range fail rather than clamp. Historical calibration may produce representable values above 10; these are preserved.
+
+The HID adapter accepts exactly 14 input bytes and prepends a zero byte for the legacy mapper, so raw channels 0–6 become legacy indices 1–7. Full control mapping and equality against VB.NET captures remain pending. LED output uses report ID `134` with seven payload bytes, ordered rightmost, middle, leftmost segments. The original startup logo, blanking and digit-9 segment value `103` are preserved; only numeric 107 has visual hardware confirmation. Each LED request makes one native write attempt; hid4java exposes no write timeout.
+
+## Windows distribution
+
+On **native Windows**, set `JAVA_HOME` to a full JDK 17+ matching the target architecture and put Maven on PATH:
 
 ```powershell
 .\RailDriverJava\package-windows.ps1
@@ -58,12 +97,22 @@ On **native Windows**, set `JAVA_HOME` to a full JDK 17+ of the target architect
 .\RailDriverJava\dist\RailDriverGateway\RailDriverWorkbench.exe
 ```
 
-`jpackage` creates the console `RailDriverGateway.exe`, a `RailDriverWorkbench.exe` Swing launcher (default `--gui`, no console), and bundled runtime. Copy the **whole** `RailDriverGateway` directory to the target machine. No installer, Docker, WSL or separate target JRE is required. Packaging must run on Windows; it has not been run here. The destination app-image folder must not already exist; choose `-Destination` or remove an old generated image deliberately. Run the clean-machine checklist before distributing.
+The script uses `jpackage` to create a bundled runtime, the console launcher `RailDriverGateway.exe`, and the GUI launcher `RailDriverWorkbench.exe`. Copy the **whole** `RailDriverGateway` directory to the target machine; a separately installed JRE is not needed. The destination must not already exist: choose `-Destination` or deliberately remove the old generated image.
 
-## Fallback and rights
+Windows packaging and clean-machine execution have not been verified. Follow the [Windows acceptance checklist](VERIFICATION.md#clean-native-windows-gate--pending) before distribution.
 
-Stop Java before launching the original `BRaVE_RailDriver.sln` application. The original VB project and solution are unchanged. No licence is granted to the existing repository or this port by these changes: owner permission and review remain release gates.
+## Verification status
 
-Dependencies: hid4java **0.8.0** (MIT), JNA **5.19.1** (dual Apache-2.0/LGPL-2.1-or-later), and bundled hidapi native libraries (upstream offers BSD/GPLv3/original HIDAPI licence choices). JNA is pinned explicitly because hid4java permits a version range. Copies of hid4java, JNA and hidapi BSD terms are retained under `src/main/resources/META-INF/raildriver-notices/` and inside the executable JAR; review exact bundled-native provenance and redistribution obligations before release. The project's JUnit dependency is test-only. No JMRI code was copied and JMRI is not a dependency.
+- **Software:** 32 tests passed on Java 17, including fake-HID/real-loopback integration and headless Swing interactions/rendering.
+- **macOS controller:** real 14-byte HID input, 20-byte UDP output, throttle movement, visually confirmed LED 107, unplug shutdown, and two Swing-session API start/stop cycles were checked.
+- **Pending:** complete physical mapping, VB.NET equivalence, existing-simulator integration, native GUI click-through and Windows packaging/execution.
 
-API reference: [hid4java 0.8.0 HidDevice](https://github.com/gary-rowe/hid4java/blob/hid4java-0.8.0/src/main/java/org/hid4java/HidDevice.java), [hid4java licensing](https://github.com/gary-rowe/hid4java/blob/hid4java-0.8.0/LICENSE), [hidapi licensing](https://github.com/libusb/hidapi/blob/hidapi-0.14.0/LICENSE.txt).
+See [VERIFICATION.md](VERIFICATION.md) and its linked captures for evidence and limits. Software renders do not establish native GUI or hardware acceptance. To use the original fallback, stop Java and open `BRaVE_RailDriver.sln` on Windows.
+
+## Dependencies and licensing
+
+Runtime dependencies are hid4java **0.8.0** (MIT), JNA **5.19.1** (Apache-2.0/LGPL-2.1-or-later), and bundled hidapi native libraries (upstream offers BSD/GPLv3/original HIDAPI licence choices). JNA is pinned explicitly; JUnit is test-only. No JMRI code is included.
+
+Dependency notices are retained in [src/main/resources/META-INF/raildriver-notices/](src/main/resources/META-INF/raildriver-notices/) and inside the JAR. These changes do not grant a licence to the repository or port; owner permission, exact native-library provenance and bundled-JDK redistribution terms remain release checks.
+
+References: [hid4java HidDevice API](https://github.com/gary-rowe/hid4java/blob/hid4java-0.8.0/src/main/java/org/hid4java/HidDevice.java), [hid4java licence](https://github.com/gary-rowe/hid4java/blob/hid4java-0.8.0/LICENSE), [hidapi licensing](https://github.com/libusb/hidapi/blob/hidapi-0.14.0/LICENSE.txt).
