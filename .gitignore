@@ -6,6 +6,7 @@
 *.user
 *.userosscache
 *.sln.docstates
+.DS_Store
 
 # Local BMad runtime
 /_bmad/
@@ -17,7 +18,8 @@
 /_bmad-output/
 /DESIGN.md
 /PRODUCT.md
-/RailDriverJava/DESKTOP_SURFACE.md
+/RailDriverJava/**/*.md
+!/RailDriverJava/**/README.md
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

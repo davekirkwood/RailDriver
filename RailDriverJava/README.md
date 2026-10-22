@@ -99,7 +99,7 @@ On **native Windows**, set `JAVA_HOME` to a full JDK 17+ matching the target arc
 
 The script uses `jpackage` to create a bundled runtime, the console launcher `RailDriverGateway.exe`, and the GUI launcher `RailDriverWorkbench.exe`. Copy the **whole** `RailDriverGateway` directory to the target machine; a separately installed JRE is not needed. The destination must not already exist: choose `-Destination` or deliberately remove the old generated image.
 
-Windows packaging and clean-machine execution have not been verified. Follow the [Windows acceptance checklist](VERIFICATION.md#clean-native-windows-gate--pending) before distribution.
+Windows packaging and clean-machine execution have not been verified. Before distribution, test the complete app image on a clean Windows machine without Java installed: run both launchers, check missing-device and port-conflict errors, then verify controller input, simulator output, LED writes, unplug and shutdown behaviour.
 
 ## Verification status
 
@@ -107,7 +107,7 @@ Windows packaging and clean-machine execution have not been verified. Follow the
 - **macOS controller:** real 14-byte HID input, 20-byte UDP output, throttle movement, visually confirmed LED 107, unplug shutdown, and two Swing-session API start/stop cycles were checked.
 - **Pending:** complete physical mapping, VB.NET equivalence, existing-simulator integration, native GUI click-through and Windows packaging/execution.
 
-See [VERIFICATION.md](VERIFICATION.md) and its linked captures for evidence and limits. Software renders do not establish native GUI or hardware acceptance. To use the original fallback, stop Java and open `BRaVE_RailDriver.sln` on Windows.
+Recorded evidence is retained under [verification/](verification/). Software renders do not establish native GUI or hardware acceptance. To use the original fallback, stop Java and open `BRaVE_RailDriver.sln` on Windows.
 
 ## Dependencies and licensing
 
