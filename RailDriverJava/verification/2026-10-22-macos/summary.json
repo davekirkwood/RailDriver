@@ -1,0 +1,97 @@
+{
+  "exit": 1,
+  "packets": 20192,
+  "distinct_frames": 22,
+  "elapsed": 239.291042790981,
+  "observed_rate_hz": 84.57391823226403,
+  "led107_sent": true,
+  "source_commit": "da0747c334de3da9980adaed3374768087ffa4ce",
+  "source_worktree_note": "Existing uncommitted UdpGateway.java change preserved and included in the test build; see source-patch.diff.",
+  "device": {
+    "product": "RailDriver Modern Desktop",
+    "manufacturer": "PI Engineering",
+    "vid": "05F3",
+    "pid": "00D2",
+    "usage_page": 12,
+    "usage": 1,
+    "input_report_size": 14,
+    "output_report_size": 8,
+    "version_number": 848,
+    "transport": "USB"
+  },
+  "raw_reports_logged": 294,
+  "raw_byte_ranges": {
+    "0": [
+      57,
+      230
+    ],
+    "1": [
+      40,
+      229
+    ],
+    "2": [
+      61,
+      211
+    ],
+    "3": [
+      203,
+      204
+    ],
+    "4": [
+      123,
+      124
+    ],
+    "5": [
+      88,
+      184
+    ],
+    "6": [
+      85,
+      182
+    ],
+    "7": [
+      0,
+      16
+    ],
+    "8": [
+      0,
+      0
+    ],
+    "9": [
+      0,
+      0
+    ],
+    "10": [
+      0,
+      0
+    ],
+    "11": [
+      0,
+      0
+    ],
+    "12": [
+      0,
+      8
+    ],
+    "13": [
+      53,
+      53
+    ]
+  },
+  "packet_lengths": [
+    20
+  ],
+  "median_interval_ms": 12.058167019858956,
+  "p95_interval_ms": 12.655333033762872,
+  "max_interval_ms": 127.06958304625005,
+  "observed_frames_unexplained_by_logged_reports": 0,
+  "led107_visual_confirmation": "User explicitly confirmed display 107 during live run.",
+  "control_label_caveat": "User reported possible order mismatch; independent brake/bail-off (raw3/raw4) show only 1-count variation, not accepted.",
+  "post_exit_ports": {
+    "59981": "rebind passed",
+    "59982": "rebind passed",
+    "59983": "rebind passed; no datagrams during 300 ms observation"
+  },
+  "raw_udp_capture_sha256": "4113dd17bd4ab9c25a83b18a7a8c2526731872c6548c5011e99781e01b314fea",
+  "raw_udp_capture_retained_at": "/var/folders/6l/9yrvtr051_xcq4j_k_pv74_00000gn/T/raildriver-hardware-t050mmav/udp.jsonl"
+}

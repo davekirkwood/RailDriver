@@ -6,6 +6,20 @@
 *.user
 *.userosscache
 *.sln.docstates
+.DS_Store
+
+# Local BMad runtime
+/_bmad/
+
+# Local Impeccable artifacts
+/.impeccable/
+
+# Local planning and design-tool records
+/_bmad-output/
+/DESIGN.md
+/PRODUCT.md
+/RailDriverJava/**/*.md
+!/RailDriverJava/**/README.md
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
@@ -240,3 +254,7 @@ ModelManifest.xml
 
 # FAKE - F# Make
 .fake/
+
+# Java gateway generated artifacts
+/RailDriverJava/target/
+/RailDriverJava/dist/
